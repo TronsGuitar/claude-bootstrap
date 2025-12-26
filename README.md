@@ -111,6 +111,7 @@ Define before you build:
 | `react-web.md` | React + hooks + React Query + Zustand |
 | `react-native.md` | Mobile patterns, platform-specific code |
 | `llm-patterns.md` | AI-first apps, LLM testing, prompt management |
+| `ai-models.md` | Latest models reference - Claude, OpenAI, Gemini, Eleven Labs, Replicate |
 
 ## Usage Patterns
 
