@@ -705,6 +705,205 @@ Install "Playwright Test for VS Code" for:
 
 ---
 
+## Dead Link Detection (REQUIRED)
+
+**Every project MUST include dead link detection tests.** Run these on every deployment.
+
+### Link Validator Test
+
+```typescript
+// e2e/tests/links.spec.ts
+import { test, expect } from '@playwright/test';
+
+const PAGES_TO_CHECK = ['/', '/about', '/pricing', '/blog', '/contact'];
+
+test.describe('Dead Link Detection', () => {
+  for (const pagePath of PAGES_TO_CHECK) {
+    test(`no dead links on ${pagePath}`, async ({ page, request }) => {
+      await page.goto(pagePath);
+
+      // Get all links on the page
+      const links = await page.locator('a[href]').all();
+      const hrefs = await Promise.all(
+        links.map(link => link.getAttribute('href'))
+      );
+
+      // Filter to internal and absolute external links
+      const uniqueLinks = [...new Set(hrefs.filter(Boolean))] as string[];
+
+      for (const href of uniqueLinks) {
+        // Skip mailto, tel, and anchor links
+        if (href.startsWith('mailto:') || href.startsWith('tel:') || href.startsWith('#')) {
+          continue;
+        }
+
+        // Build full URL
+        const url = href.startsWith('http') ? href : new URL(href, page.url()).href;
+
+        // Check link status
+        const response = await request.get(url, {
+          timeout: 10000,
+          ignoreHTTPSErrors: true,
+        });
+
+        expect(
+          response.ok(),
+          `Dead link found on ${pagePath}: ${href} returned ${response.status()}`
+        ).toBeTruthy();
+      }
+    });
+  }
+});
+```
+
+### Comprehensive Link Crawler
+
+```typescript
+// e2e/tests/site-links.spec.ts
+import { test, expect, Page, APIRequestContext } from '@playwright/test';
+
+interface LinkResult {
+  url: string;
+  status: number;
+  foundOn: string;
+}
+
+async function checkAllLinks(
+  page: Page,
+  request: APIRequestContext,
+  startUrl: string
+): Promise<LinkResult[]> {
+  const visited = new Set<string>();
+  const results: LinkResult[] = [];
+  const toVisit = [startUrl];
+  const baseUrl = new URL(startUrl).origin;
+
+  while (toVisit.length > 0) {
+    const currentUrl = toVisit.pop()!;
+    if (visited.has(currentUrl)) continue;
+    visited.add(currentUrl);
+
+    try {
+      await page.goto(currentUrl);
+      const links = await page.locator('a[href]').all();
+
+      for (const link of links) {
+        const href = await link.getAttribute('href');
+        if (!href || href.startsWith('#') || href.startsWith('mailto:') || href.startsWith('tel:')) {
+          continue;
+        }
+
+        const fullUrl = href.startsWith('http') ? href : new URL(href, currentUrl).href;
+
+        // Check link
+        const response = await request.get(fullUrl, {
+          timeout: 10000,
+          ignoreHTTPSErrors: true,
+        });
+
+        results.push({
+          url: fullUrl,
+          status: response.status(),
+          foundOn: currentUrl,
+        });
+
+        // Add internal links to queue
+        if (fullUrl.startsWith(baseUrl) && !visited.has(fullUrl)) {
+          toVisit.push(fullUrl);
+        }
+      }
+    } catch (error) {
+      results.push({
+        url: currentUrl,
+        status: 0,
+        foundOn: 'navigation',
+      });
+    }
+  }
+
+  return results;
+}
+
+test('no dead links on entire site', async ({ page, request, baseURL }) => {
+  const results = await checkAllLinks(page, request, baseURL!);
+  const deadLinks = results.filter(r => r.status >= 400 || r.status === 0);
+
+  if (deadLinks.length > 0) {
+    console.error('Dead links found:');
+    deadLinks.forEach(link => {
+      console.error(`  ${link.url} (${link.status}) - found on ${link.foundOn}`);
+    });
+  }
+
+  expect(deadLinks, `Found ${deadLinks.length} dead links`).toHaveLength(0);
+});
+```
+
+### Image Link Validation
+
+```typescript
+// e2e/tests/images.spec.ts
+import { test, expect } from '@playwright/test';
+
+test('no broken images on homepage', async ({ page, request }) => {
+  await page.goto('/');
+
+  const images = await page.locator('img[src]').all();
+
+  for (const img of images) {
+    const src = await img.getAttribute('src');
+    if (!src) continue;
+
+    const url = src.startsWith('http') ? src : new URL(src, page.url()).href;
+
+    // Skip data URLs
+    if (url.startsWith('data:')) continue;
+
+    const response = await request.get(url);
+    expect(
+      response.ok(),
+      `Broken image: ${src}`
+    ).toBeTruthy();
+
+    // Verify it's actually an image
+    const contentType = response.headers()['content-type'];
+    expect(
+      contentType?.startsWith('image/'),
+      `${src} is not an image (${contentType})`
+    ).toBeTruthy();
+  }
+});
+```
+
+### CI Integration for Link Checking
+
+```yaml
+# .github/workflows/link-check.yml
+name: Link Check
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly on Monday
+  push:
+    branches: [main]
+
+jobs:
+  link-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npx playwright install chromium
+      - run: npx playwright test e2e/tests/links.spec.ts --project=chromium
+        env:
+          BASE_URL: ${{ secrets.PRODUCTION_URL }}
+```
+
+---
+
 ## Anti-Patterns
 
 - **Hardcoded waits** - Use auto-waiting assertions instead

@@ -4,6 +4,140 @@
 
 ---
 
+## Test-First Development (MANDATORY)
+
+**CRITICAL: Tests MUST be written BEFORE implementation code. This is non-negotiable for frontend components.**
+
+### The TFD Workflow
+
+```
+1. Write test file first → Defines expected behavior
+2. Run test (it fails) → Confirms test is valid
+3. Write minimal code → Just enough to pass
+4. Run test (it passes) → Validates implementation
+5. Refactor if needed → Tests catch regressions
+```
+
+### Component Development Order
+
+```bash
+# CORRECT ORDER - Test first
+1. Create Button.test.tsx    # Write tests for expected behavior
+2. Run tests (they fail)     # npm test -- Button
+3. Create Button.tsx         # Implement to pass tests
+4. Run tests (they pass)     # Verify implementation
+5. Create Button.module.css  # Style after logic works
+
+# WRONG ORDER - Never do this
+1. Create Button.tsx         # ❌ No tests exist yet
+2. Create Button.module.css  # ❌ Still no tests
+3. "I'll add tests later"    # ❌ Tests never get written
+```
+
+### Test File Structure (Create First)
+
+```typescript
+// Button.test.tsx - CREATE THIS FIRST
+import { render, screen, fireEvent } from '@testing-library/react';
+import { Button } from './Button';
+
+describe('Button', () => {
+  // Define ALL expected behaviors upfront
+  describe('rendering', () => {
+    it('renders with label', () => {
+      render(<Button label="Click me" onClick={() => {}} />);
+      expect(screen.getByRole('button', { name: 'Click me' })).toBeInTheDocument();
+    });
+
+    it('applies variant class', () => {
+      render(<Button label="Click" onClick={() => {}} variant="secondary" />);
+      expect(screen.getByRole('button')).toHaveClass('secondary');
+    });
+  });
+
+  describe('interactions', () => {
+    it('calls onClick when clicked', () => {
+      const onClick = vi.fn();
+      render(<Button label="Click me" onClick={onClick} />);
+      fireEvent.click(screen.getByRole('button'));
+      expect(onClick).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not call onClick when disabled', () => {
+      const onClick = vi.fn();
+      render(<Button label="Click me" onClick={onClick} disabled />);
+      fireEvent.click(screen.getByRole('button'));
+      expect(onClick).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('accessibility', () => {
+    it('has correct aria attributes when disabled', () => {
+      render(<Button label="Click" onClick={() => {}} disabled />);
+      expect(screen.getByRole('button')).toHaveAttribute('aria-disabled', 'true');
+    });
+  });
+});
+```
+
+### Hook Test First Pattern
+
+```typescript
+// useCounter.test.ts - CREATE THIS FIRST
+import { renderHook, act } from '@testing-library/react';
+import { useCounter } from './useCounter';
+
+describe('useCounter', () => {
+  it('starts at initial value', () => {
+    const { result } = renderHook(() => useCounter(5));
+    expect(result.current.count).toBe(5);
+  });
+
+  it('increments', () => {
+    const { result } = renderHook(() => useCounter());
+    act(() => result.current.increment());
+    expect(result.current.count).toBe(1);
+  });
+
+  it('decrements', () => {
+    const { result } = renderHook(() => useCounter(5));
+    act(() => result.current.decrement());
+    expect(result.current.count).toBe(4);
+  });
+
+  it('resets to initial value', () => {
+    const { result } = renderHook(() => useCounter(10));
+    act(() => result.current.increment());
+    act(() => result.current.reset());
+    expect(result.current.count).toBe(10);
+  });
+});
+```
+
+### Enforcement Checklist
+
+Before writing ANY component/hook implementation:
+
+- [ ] Test file exists: `Component.test.tsx`
+- [ ] All expected behaviors have test cases
+- [ ] Tests run and FAIL (proves tests are valid)
+- [ ] Only THEN create implementation file
+
+**If tests are skipped, Claude MUST:**
+```
+⚠️ TEST-FIRST VIOLATION
+
+Cannot create [Component].tsx - no test file exists.
+
+Creating [Component].test.tsx first with tests for:
+- Rendering with required props
+- User interactions
+- Edge cases
+- Accessibility
+```
+
+---
+
 ## Project Structure
 
 ```

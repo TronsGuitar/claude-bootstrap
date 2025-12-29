@@ -6,17 +6,19 @@ Complexity is the enemy. Every line of code is a liability. The goal is software
 
 ---
 
-## Simplicity Rules
+## Simplicity Rules (STRICTLY ENFORCED)
+
+**CRITICAL: These limits are non-negotiable. Claude MUST check and enforce these limits for EVERY file created or modified.**
 
 ### Function Level
-- **Maximum 20 lines per function** - if longer, decompose
+- **Maximum 20 lines per function** - if longer, decompose IMMEDIATELY
 - **Maximum 3 parameters per function** - if more, use an options object or decompose
 - **Maximum 2 levels of nesting** - flatten with early returns or extract functions
 - **Single responsibility** - each function does exactly one thing
 - **Descriptive names over comments** - if you need a comment to explain what, rename it
 
 ### File Level
-- **Maximum 200 lines per file** - if longer, split by responsibility
+- **Maximum 200 lines per file** - if longer, split by responsibility BEFORE continuing
 - **Maximum 10 functions per file** - keeps cognitive load manageable
 - **One export focus per file** - a file should have one primary purpose
 
@@ -24,6 +26,27 @@ Complexity is the enemy. Every line of code is a liability. The goal is software
 - **Maximum 3 levels of directory nesting** - flat is better than nested
 - **Clear boundaries** - each module has a single public interface
 - **No circular dependencies** - ever
+
+### Enforcement Protocol
+
+**Before completing ANY file:**
+1. Count total lines - if > 200, STOP and split
+2. Count functions - if > 10, STOP and split
+3. Check each function length - if any > 20 lines, STOP and decompose
+4. Check parameter counts - if any > 3, STOP and refactor
+
+**If limits are exceeded during development:**
+```
+⚠️ FILE SIZE VIOLATION DETECTED
+
+[filename] has [X] lines (limit: 200)
+
+Splitting into:
+- [filename-a].ts - [responsibility A]
+- [filename-b].ts - [responsibility B]
+```
+
+**Never defer refactoring.** Fix violations immediately, not "later".
 
 ---
 
