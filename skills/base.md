@@ -269,6 +269,77 @@ npm run lint && npm run typecheck && npm test -- --coverage --watchAll=false
 **Action Required:** [Specific fix needed]
 ```
 
+### Bug Fix Workflow (TDD - Mandatory)
+
+**When a user reports a bug, NEVER jump to fixing it directly.**
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│  1. DIAGNOSE: Identify the Test Gap                         │
+│     └─ Run existing tests - do any fail?                    │
+│     └─ If tests pass but bug exists → tests are incomplete  │
+│     └─ Document: "Test gap: [what was missed]"              │
+├─────────────────────────────────────────────────────────────┤
+│  2. RED: Write a Failing Test for the Bug                   │
+│     └─ Create test that reproduces the exact bug            │
+│     └─ Test should FAIL with current code                   │
+│     └─ This proves the test catches the bug                 │
+├─────────────────────────────────────────────────────────────┤
+│  3. GREEN: Fix the Bug                                      │
+│     └─ Write minimum code to make the test pass             │
+│     └─ Run test → must PASS now                             │
+├─────────────────────────────────────────────────────────────┤
+│  4. VALIDATE: Full Quality Check                            │
+│     └─ Run ALL tests (not just the new one)                 │
+│     └─ Run linter and type checker                          │
+│     └─ Verify no regression in coverage                     │
+└─────────────────────────────────────────────────────────────┘
+```
+
+#### Bug Report Todo Format
+
+```markdown
+## [BUG-001] Short description of the bug
+
+**Status:** pending
+**Priority:** high
+**Reported:** [how user reported it / reproduction steps]
+
+### Bug Description
+What is happening vs. what should happen.
+
+### Reproduction Steps
+1. Step one
+2. Step two
+3. Observe: [incorrect behavior]
+4. Expected: [correct behavior]
+
+### Test Gap Analysis
+- Existing test coverage: [list relevant test files]
+- Gap identified: [what the tests missed]
+- New test needed: [describe the test to add]
+
+### Test Cases for Bug
+| Input | Current (Bug) | Expected (Fixed) |
+|-------|---------------|------------------|
+| ... | ... | ... |
+
+### TDD Execution Log
+| Phase | Command | Result | Timestamp |
+|-------|---------|--------|-----------|
+| DIAGNOSE | `npm test` | All pass (gap!) | - |
+| RED | `npm test -- --grep "bug description"` | 1 test failed ✓ | - |
+| GREEN | `npm test -- --grep "bug description"` | 1 test passed ✓ | - |
+| VALIDATE | `npm run lint && npm run typecheck && npm test -- --coverage` | Pass ✓ | - |
+```
+
+#### Bug Fix Anti-Patterns
+
+- ❌ **Fixing without a test** - Bug will likely return
+- ❌ **Writing test after fix** - Can't prove test catches the bug
+- ❌ **Skipping test gap analysis** - Misses why tests didn't catch it
+- ❌ **Only testing the fix** - Must run full test suite for regressions
+
 ### Example Atomic Todo
 ```markdown
 ## [TODO-042] Add email validation to signup form
