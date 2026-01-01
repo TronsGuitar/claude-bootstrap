@@ -1,8 +1,31 @@
 # Claude Bootstrap
 
-> An opinionated project initialization system for Claude Code. Security-first, spec-driven, AI-native.
+> An opinionated project initialization system for Claude Code. **TDD-first, security-first, spec-driven, AI-native.**
 
 **The bottleneck has moved from code generation to code comprehension.** AI can generate infinite code, but humans still need to review, understand, and maintain it. Claude Bootstrap provides guardrails that keep AI-generated code simple, secure, and verifiable.
+
+## Core Philosophy
+
+```
+┌────────────────────────────────────────────────────────────────┐
+│  TESTS FIRST, ALWAYS                                           │
+│  ─────────────────────────────────────────────────────────────│
+│  Features: Write tests → Watch them fail → Implement → Pass    │
+│  Bugs: Find test gap → Write failing test → Fix → Pass         │
+│  No code ships without a test that failed first.               │
+├────────────────────────────────────────────────────────────────┤
+│  SIMPLICITY IS NON-NEGOTIABLE                                  │
+│  ─────────────────────────────────────────────────────────────│
+│  20 lines per function │ 200 lines per file │ 3 params max     │
+│  If you can't understand the whole system in one session,      │
+│  it's too complex.                                             │
+├────────────────────────────────────────────────────────────────┤
+│  SECURITY BY DEFAULT                                           │
+│  ─────────────────────────────────────────────────────────────│
+│  No secrets in code │ No secrets in client env vars            │
+│  Dependency scanning │ Pre-commit hooks │ CI enforcement       │
+└────────────────────────────────────────────────────────────────┘
+```
 
 ## Why This Exists
 
@@ -57,6 +80,29 @@ your-project/
 ```
 
 ## Philosophy
+
+### TDD-First Development (Mandatory)
+
+**Every feature and bug fix follows the same pattern:**
+
+| Phase | Feature Development | Bug Fixing |
+|-------|---------------------|------------|
+| **1. RED** | Write tests based on acceptance criteria | Identify test gap, write test that reproduces bug |
+| **2. RUN** | Execute tests → ALL MUST FAIL | Execute test → MUST FAIL (proves it catches bug) |
+| **3. GREEN** | Write minimum code to pass | Fix the bug |
+| **4. RUN** | Execute tests → ALL MUST PASS | Execute test → MUST PASS |
+| **5. VALIDATE** | Lint + TypeCheck + Coverage ≥80% | Full test suite + Lint + TypeCheck |
+
+**Why tests must fail first:**
+- Proves the test actually validates the requirement
+- For bugs: proves the test would have caught it
+- Prevents false confidence from tests that always pass
+
+**Anti-patterns we prevent:**
+- ❌ Fixing bugs without adding a test first
+- ❌ Writing tests after implementation
+- ❌ Marking todos complete with failing tests
+- ❌ Skipping lint/typecheck before completion
 
 ### Complexity is the Enemy
 
@@ -237,12 +283,12 @@ Every project gets automated enforcement:
 
 ## Atomic Todos
 
-All work is tracked with validation and test cases:
+All work is tracked with validation, test cases, and **TDD execution logs**:
 
 ```markdown
 ## [TODO-042] Add email validation to signup form
 
-**Status:** pending
+**Status:** in-progress
 **Priority:** high
 **Estimate:** S
 
@@ -250,26 +296,49 @@ All work is tracked with validation and test cases:
 - [ ] Email field shows error for invalid format
 - [ ] Form cannot submit with invalid email
 
-### Validation
-- Manual: Enter "notanemail", verify error
-- Automated: `npm test -- --grep "email validation"`
-
 ### Test Cases
 | Input | Expected |
 |-------|----------|
 | user@example.com | Valid |
 | notanemail | Error |
+
+### TDD Execution Log
+| Phase | Command | Result |
+|-------|---------|--------|
+| RED | `npm test -- --grep "email validation"` | 2 tests failed ✓ |
+| GREEN | `npm test -- --grep "email validation"` | 2 tests passed ✓ |
+| VALIDATE | `npm run lint && npm run typecheck && npm test -- --coverage` | Pass, 84% ✓ |
+```
+
+**Bug reports include test gap analysis:**
+
+```markdown
+## [BUG-007] Email validation accepts "user@"
+
+### Test Gap Analysis
+- Existing tests: `signup.test.ts` - only tested valid emails
+- Gap: Missing test for email without domain
+- New test: Add case for partial emails
+
+### TDD Execution Log
+| Phase | Command | Result |
+|-------|---------|--------|
+| DIAGNOSE | `npm test` | All pass (test gap!) |
+| RED | `npm test -- --grep "partial email"` | 1 test failed ✓ |
+| GREEN | `npm test -- --grep "partial email"` | 1 test passed ✓ |
+| VALIDATE | `npm run lint && npm test -- --coverage` | Pass ✓ |
 ```
 
 ## Comparison
 
 | Feature | Other Tools | Claude Bootstrap |
 |---------|-------------|------------------|
-| Approach | Collection of rules | Integrated, opinionated system |
-| Security | Rarely covered | First-class with CI enforcement |
-| AI-First | Not addressed | LLM patterns + testing |
-| Todos | Basic tasks | Atomic with validation + test cases |
-| Update model | Copy once | Idempotent - sync anytime |
+| **Testing** | Optional, often skipped | TDD mandatory - tests fail first |
+| **Bug Fixes** | Jump to fix | Test gap analysis → failing test → fix |
+| **Security** | Rarely covered | First-class with CI enforcement |
+| **Complexity** | Vague guidance | Hard limits (20 lines/function, 200/file) |
+| **Todos** | Basic tasks | Atomic with TDD execution logs |
+| **Validation** | Manual | Automated: lint + typecheck + coverage |
 
 ## Contributing
 
